@@ -754,13 +754,13 @@ async function showFileAdmin(env, screen, id) {
   if (!found) return render(env, screen, "الملف غير موجود.");
   const f = found.file;
   const status = f.status === "scheduled" ? `مجدول: ${new Date(Number(f.publishAt)).toLocaleString("en-GB", { timeZone: "Asia/Baghdad" })}` : f.status === "hidden" ? "مخفي" : "منشور";
-  const sent7 = sumDailyFileMetric(f, "sends", 7);
-  const shared7 = sumDailyFileMetric(f, "shares", 7);
-  const sentToday = Number(f.dailyMetrics?.[iraqDayKey()]?.sends || 0);
-  const sharedToday = Number(f.dailyMetrics?.[iraqDayKey()]?.shares || 0);
-  const opens7 = sumDailyFileMetric(f, "opens", 7);
-  const codes7 = sumDailyFileMetric(f, "codes", 7);
-  const codesToday = Number(f.dailyMetrics?.[iraqDayKey()]?.codes || 0);
+  const sent7 = sumDailyFileMetric(f, "sends", 7) + await countRecentMetric(env, `metric:file_send:${id}:`, 7);
+  const shared7 = sumDailyFileMetric(f, "shares", 7) + await countRecentMetric(env, `metric:share:${id}:`, 7);
+  const sentToday = Number(f.dailyMetrics?.[iraqDayKey()]?.sends || 0) + await countMetricToday(env, `metric:file_send:${id}:`);
+  const sharedToday = Number(f.dailyMetrics?.[iraqDayKey()]?.shares || 0) + await countMetricToday(env, `metric:share:${id}:`);
+  const opens7 = sumDailyFileMetric(f, "opens", 7) + await countRecentMetric(env, `metric:file_open:${id}:`, 7);
+  const codes7 = sumDailyFileMetric(f, "codes", 7) + await countRecentMetric(env, `metric:file_code:${id}:`, 7);
+  const codesToday = Number(f.dailyMetrics?.[iraqDayKey()]?.codes || 0) + await countMetricToday(env, `metric:file_code:${id}:`);
   const opensTotal = Number(f.opens || 0);
   return render(env, screen, `📄 ${f.title}\nالحالة: ${status}\nرمز الوصول: ${f.accessCodeHash || f.accessCode ? "مفعّل" : "غير مفعّل"} (استخدامات الرمز: ${Number(f.accessUses || 0)})\nالصلاحية: ${f.expiresAt ? new Date(Number(f.expiresAt)).toLocaleString("en-GB", { timeZone: "Asia/Baghdad" }) : "غير محدودة"}\nالإرسالات: ${Number(f.sends || 0)} | اليوم: ${sentToday} | 7 أيام: ${sent7}\nضغطات المشاركة: ${Number(f.shares || 0)} | اليوم: ${sharedToday} | 7 أيام: ${shared7}\nفتح الروابط: إجمالي ${opensTotal} | آخر 7 أيام ${opens7}\nاستخدامات الرمز: اليوم ${codesToday} | 7 أيام ${codes7}`, { inline_keyboard: [
     [{ text: "✏️ تغيير الاسم", callback_data: `mfrename:${id}` }],
