@@ -19,17 +19,22 @@ const HELP_TEXT =
   "إذا طلب منك البوت الاشتراك، اشترك بالقناة واضغط تحقق.";
 
 async function tg(env, method, body) {
-  const res = await fetch(
-    `https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    }
-  );
-  const data = await res.json();
-  if (!data.ok) console.error(method, data.description);
-  return data;
+  try {
+    const res = await fetch(
+      `https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }
+    );
+    const data = await res.json();
+    if (!data.ok) console.error(method, data.description);
+    return data;
+  } catch (error) {
+    console.error("Telegram request failed:", method, error);
+    return { ok: false, error_code: 503, description: "telegram_network_error" };
+  }
 }
 
 async function send(env, chatId, text, keyboard) {
@@ -1963,6 +1968,14 @@ async function handleMessage(env, message) {
   }
 
   const pendingState = await getState(env, userId);
+  if (pendingState?.action === "file_access_code" && !isAdmin(env, userId) && !(await subscribed(env, userId))) {
+    const screen = {
+      userId,
+      chatId: pendingState.chatId || chatId,
+      messageId: pendingState.messageId || null
+    };
+    return requireSubscription(env, screen);
+  }
   if (pendingState && (isAdmin(env, userId) || ["user_request", "user_report", "file_access_code"].includes(pendingState.action))) {
     return handleStateMessage(env, message, pendingState);
   }
